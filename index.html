@@ -390,7 +390,7 @@
 <!-- Modal -->
 <div class="overlay" id="overlay" onclick="onOverlayClick(event)">
   <div class="modal">
-    <h2>Tambah Trade Baru</h2>
+    <h2 id="modal-title">Tambah Trade Baru</h2>
     <div class="form-grid">
       <div class="form-field">
         <label>Tanggal Entry</label>
@@ -445,7 +445,7 @@
     <div id="risk-hint" class="risk-hint" style="display:none"></div>
     <div class="form-footer">
       <button class="btn" onclick="closeModal()">Batal</button>
-      <button class="btn primary" onclick="saveTrade()">Simpan Trade</button>
+      <button class="btn primary" onclick="saveTrade()" id="btn-save">Simpan Trade</button>
     </div>
   </div>
 </div>
@@ -581,7 +581,10 @@ function render() {
       <td class="${pnlClass}" style="font-weight:500">${pnl>=0?pnlStr:'−$'+Math.abs(pnl).toFixed(2)}</td>
       <td class="price">${rrStr}</td>
       <td><span class="badge ${t.status}">${t.status}</span></td>
-      <td><button class="del-btn" onclick="deleteTrade(${t.id})" title="Hapus">✕</button></td>
+      <td style="display:flex;gap:4px;">
+        <button class="del-btn" onclick="editTrade(${t.id})" title="Edit" style="color:var(--text-muted)">✎</button>
+        <button class="del-btn" onclick="deleteTrade(${t.id})" title="Hapus">✕</button>
+      </td>
     </tr>`;
   }).join('');
 }
@@ -601,8 +604,12 @@ function clearAll() {
   render();
 }
 
+let editingId = null;
+
 function openModal() {
-  document.getElementById('overlay').classList.add('active');
+  editingId = null;
+  document.getElementById('modal-title').textContent = 'Tambah Trade Baru';
+  document.getElementById('btn-save').textContent = 'Simpan Trade';
   document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
   document.getElementById('f-sym').value = '';
   document.getElementById('f-lev').value = '';
@@ -615,7 +622,30 @@ function openModal() {
   document.getElementById('f-note').value = '';
   document.getElementById('f-status').value = 'OPEN';
   document.getElementById('risk-hint').style.display = 'none';
+  document.getElementById('overlay').classList.add('active');
   document.getElementById('f-sym').focus();
+}
+
+function editTrade(id) {
+  const t = trades.find(t => t.id === id);
+  if (!t) return;
+  editingId = id;
+  document.getElementById('modal-title').textContent = 'Edit Trade — ' + t.symbol;
+  document.getElementById('btn-save').textContent = 'Update Trade';
+  document.getElementById('f-date').value = t.date;
+  document.getElementById('f-sym').value = t.symbol;
+  document.getElementById('f-lev').value = t.leverage;
+  document.getElementById('f-entry').value = t.entry;
+  document.getElementById('f-tp1').value = t.tp1 || '';
+  document.getElementById('f-tp2').value = t.tp2 || '';
+  document.getElementById('f-sl').value = t.sl || '';
+  document.getElementById('f-margin').value = t.margin || '';
+  document.getElementById('f-pnl').value = t.pnl || '';
+  document.getElementById('f-note').value = t.note || '';
+  document.getElementById('f-status').value = t.status;
+  document.getElementById('risk-hint').style.display = 'none';
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById('f-entry').focus();
 }
 
 function closeModal() {
@@ -643,8 +673,7 @@ function saveTrade() {
   const entry = parseFloat(document.getElementById('f-entry').value);
   if (!entry) { alert('Price entry wajib diisi'); return; }
 
-  const t = {
-    id: nextId++,
+  const data = {
     date: document.getElementById('f-date').value || new Date().toISOString().slice(0,10),
     symbol: sym,
     leverage: parseFloat(document.getElementById('f-lev').value)||1,
@@ -657,7 +686,13 @@ function saveTrade() {
     status: document.getElementById('f-status').value,
     note: document.getElementById('f-note').value.trim(),
   };
-  trades.push(t);
+
+  if (editingId !== null) {
+    trades = trades.map(t => t.id === editingId ? { ...t, ...data } : t);
+  } else {
+    trades.push({ id: nextId++, ...data });
+  }
+
   saveData();
   closeModal();
   render();
