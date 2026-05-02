@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trading Journal — Perpetual</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0D0D0D;
+    --bg-card: #161616;
+    --bg-hover: #1E1E1E;
+    --bg-input: #111111;
+    --border: rgba(255,255,255,0.08);
+    --border-focus: rgba(255,255,255,0.25);
+    --text-primary: #F0F0F0;
+    --text-secondary: #888;
+    --text-muted: #555;
+    --green: #22C55E;
+    --green-dim: rgba(34,197,94,0.12);
+    --red: #EF4444;
+    --red-dim: rgba(239,68,68,0.12);
+    --blue: #60A5FA;
+    --blue-dim: rgba(96,165,250,0.12);
+    --amber: #F59E0B;
+    --amber-dim: rgba(245,158,11,0.12);
+    --mono: 'IBM Plex Mono', monospace;
+    --sans: 'Inter', sans-serif;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text-primary);
+    font-family: var(--sans);
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 1rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+  }
+  .header-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+  }
+  .header-title h1 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .header-title span {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* Main Layout */
+  .main {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 1.5rem 2rem 3rem;
+  }
+
+  /* Stats Grid */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 12px;
+    margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 1rem 1.25rem;
+    transition: border-color 0.2s;
+  }
+  .stat-card:hover { border-color: rgba(255,255,255,0.15); }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-bottom: 6px;
+    font-family: var(--mono);
+  }
+  .stat-value {
+    font-size: 22px;
+    font-weight: 600;
+    font-family: var(--mono);
+    letter-spacing: -0.03em;
+  }
+  .stat-value.up { color: var(--green); }
+  .stat-value.down { color: var(--red); }
+  .stat-value.neutral { color: var(--blue); }
+  .stat-value.warn { color: var(--amber); }
+  .stat-sub {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 3px;
+    font-family: var(--mono);
+  }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .toolbar input, .toolbar select {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 7px 12px;
+    font-size: 13px;
+    font-family: var(--sans);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .toolbar input:focus, .toolbar select:focus {
+    border-color: var(--border-focus);
+  }
+  .toolbar select option { background: #1E1E1E; }
+  .btn {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 7px 16px;
+    font-size: 13px;
+    font-family: var(--sans);
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg-hover); border-color: rgba(255,255,255,0.15); }
+  .btn.primary {
+    background: var(--blue-dim);
+    border-color: rgba(96,165,250,0.3);
+    color: var(--blue);
+  }
+  .btn.primary:hover { background: rgba(96,165,250,0.2); }
+  .btn.danger { color: var(--red); }
+  .ml-auto { margin-left: auto; }
+
+  /* Table */
+  .tbl-wrap {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    overflow-x: auto;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    min-width: 820px;
+  }
+  thead {
+    background: rgba(255,255,255,0.02);
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    padding: 10px 14px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: var(--mono);
+    white-space: nowrap;
+  }
+  td {
+    padding: 11px 14px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: var(--text-primary);
+    white-space: nowrap;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .sym { font-weight: 500; color: var(--text-primary); }
+  .lev { color: var(--amber); }
+  .price { color: var(--text-secondary); }
+  .tp { color: var(--green); }
+  .sl { color: var(--red); }
+  .margin-cell { color: var(--blue); }
+  .pnl-pos { color: var(--green); }
+  .pnl-neg { color: var(--red); }
+  .pnl-zero { color: var(--text-muted); }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 99px;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: var(--sans);
+    letter-spacing: 0.03em;
+  }
+  .badge.WIN { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge.LOSS { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .badge.OPEN { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
+
+  .del-btn {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: all 0.15s;
+    font-family: var(--sans);
+  }
+  .del-btn:hover { color: var(--red); background: var(--red-dim); }
+  .empty-row td { text-align: center; padding: 3rem; color: var(--text-muted); font-family: var(--sans); }
+
+  /* Modal */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    backdrop-filter: blur(4px);
+  }
+  .overlay.active { display: flex; }
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    padding: 1.5rem;
+    width: 100%;
+    max-width: 540px;
+    animation: slideUp 0.2s ease;
+  }
+  @keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+  }
+  .modal h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+    color: var(--text-primary);
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .form-field { display: flex; flex-direction: column; gap: 5px; }
+  .form-field.full { grid-column: 1/-1; }
+  .form-field label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-family: var(--mono);
+  }
+  .form-field input, .form-field select {
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    color: var(--text-primary);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+    font-family: var(--mono);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-field input:focus, .form-field select:focus {
+    border-color: var(--border-focus);
+  }
+  .form-field select option { background: #1E1E1E; }
+  .form-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 1.25rem;
+  }
+  .risk-hint {
+    font-size: 12px;
+    color: var(--amber);
+    font-family: var(--mono);
+    padding: 8px 12px;
+    background: var(--amber-dim);
+    border-radius: 8px;
+    margin-top: 12px;
+    border: 1px solid rgba(245,158,11,0.15);
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  @media (max-width: 600px) {
+    .main { padding: 1rem; }
+    .header { padding: 0.75rem 1rem; }
+    .form-grid { grid-template-columns: 1fr; }
+    .stats { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-title">
+    <h1>Trading Journal</h1>
+    <span>perpetual futures</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn" onclick="exportCSV()">↓ Export CSV</button>
+    <button class="btn primary" onclick="openModal()">+ Tambah Trade</button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="stats" id="stats"></div>
+
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Cari simbol..." style="width:150px;" oninput="render()">
+    <select id="filter-status" onchange="render()">
+      <option value="">Semua status</option>
+      <option value="WIN">Win</option>
+      <option value="LOSS">Loss</option>
+      <option value="OPEN">Open</option>
+    </select>
+    <input type="month" id="filter-month" onchange="render()" style="width:160px;">
+    <button class="btn ml-auto danger" onclick="clearAll()">Hapus Semua</button>
+  </div>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Tanggal</th>
+          <th>Simbol</th>
+          <th>Lev</th>
+          <th>Entry</th>
+          <th>TP1</th>
+          <th>TP2</th>
+          <th>SL</th>
+          <th>Margin</th>
+          <th>PnL</th>
+          <th>R:R</th>
+          <th>Status</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Modal -->
+<div class="overlay" id="overlay" onclick="onOverlayClick(event)">
+  <div class="modal">
+    <h2>Tambah Trade Baru</h2>
+    <div class="form-grid">
+      <div class="form-field">
+        <label>Tanggal Entry</label>
+        <input type="date" id="f-date">
+      </div>
+      <div class="form-field">
+        <label>Simbol</label>
+        <input type="text" id="f-sym" placeholder="BTCUSDT" style="text-transform:uppercase">
+      </div>
+      <div class="form-field">
+        <label>Leverage</label>
+        <input type="number" id="f-lev" placeholder="10" min="1" max="125">
+      </div>
+      <div class="form-field">
+        <label>Price Entry</label>
+        <input type="number" id="f-entry" placeholder="65000" step="any">
+      </div>
+      <div class="form-field">
+        <label>TP1</label>
+        <input type="number" id="f-tp1" placeholder="67000" step="any">
+      </div>
+      <div class="form-field">
+        <label>TP2</label>
+        <input type="number" id="f-tp2" placeholder="69000" step="any">
+      </div>
+      <div class="form-field">
+        <label>Stop Loss</label>
+        <input type="number" id="f-sl" placeholder="63000" step="any">
+      </div>
+      <div class="form-field">
+        <label>Margin (USDT)</label>
+        <input type="number" id="f-margin" placeholder="100" step="any" oninput="calcRiskHint()">
+      </div>
+      <div class="form-field">
+        <label>PnL Actual (USDT)</label>
+        <input type="number" id="f-pnl" placeholder="0" step="any">
+      </div>
+      <div class="form-field">
+        <label>Status</label>
+        <select id="f-status">
+          <option value="OPEN">Open</option>
+          <option value="WIN">Win</option>
+          <option value="LOSS">Loss</option>
+        </select>
+      </div>
+      <div class="form-field full">
+        <label>Catatan (opsional)</label>
+        <input type="text" id="f-note" placeholder="Setup, alasan entry, dll...">
+      </div>
+    </div>
+    <div id="risk-hint" class="risk-hint" style="display:none"></div>
+    <div class="form-footer">
+      <button class="btn" onclick="closeModal()">Batal</button>
+      <button class="btn primary" onclick="saveTrade()">Simpan Trade</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'tj_trades_v1';
+let trades = [];
+let nextId = 1;
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      trades = d.trades || [];
+      nextId = d.nextId || (trades.length ? Math.max(...trades.map(t=>t.id))+1 : 1);
+    }
+  } catch(e) { trades = []; }
+  if (!trades.length) seedSample();
+}
+
+function saveData() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify({ trades, nextId }));
+}
+
+function seedSample() {
+  trades = [
+    {id:1,date:'2025-04-15',symbol:'BTCUSDT',leverage:10,entry:63200,tp1:65500,tp2:68000,sl:62000,margin:100,pnl:85.3,status:'WIN',note:'Break resistance 63k'},
+    {id:2,date:'2025-04-18',symbol:'ETHUSDT',leverage:15,entry:3050,tp1:3200,tp2:3400,sl:2950,margin:80,pnl:-80,status:'LOSS',note:'SL kena news Fed'},
+    {id:3,date:'2025-04-22',symbol:'SOLUSDT',leverage:20,entry:142,tp1:152,tp2:165,sl:136,margin:60,pnl:48.2,status:'WIN',note:'Breakout range 140'},
+    {id:4,date:'2025-04-28',symbol:'BNBUSDT',leverage:10,entry:580,tp1:610,tp2:640,sl:558,margin:75,pnl:-75,status:'LOSS',note:''},
+    {id:5,date:'2025-05-01',symbol:'BTCUSDT',leverage:10,entry:96500,tp1:99000,tp2:102000,sl:94000,margin:150,pnl:0,status:'OPEN',note:'Weekly support bounce'},
+  ];
+  nextId = 6;
+  saveData();
+}
+
+function fmt(n) {
+  const abs = Math.abs(n);
+  if (abs >= 1000) return n.toLocaleString('en-US', {minimumFractionDigits:0,maximumFractionDigits:2});
+  return n.toFixed(abs < 1 ? 4 : 2);
+}
+
+function calcRR(entry, tp1, sl) {
+  if (!entry || !tp1 || !sl || entry===sl) return null;
+  const reward = Math.abs(tp1 - entry);
+  const risk = Math.abs(entry - sl);
+  return (reward/risk).toFixed(2);
+}
+
+function calcStats(data) {
+  const wins = data.filter(t=>t.status==='WIN');
+  const losses = data.filter(t=>t.status==='LOSS');
+  const closed = wins.length + losses.length;
+  const wr = closed ? (wins.length/closed*100) : 0;
+  const totalPnl = data.reduce((a,t)=>a+(parseFloat(t.pnl)||0), 0);
+  const totalMargin = data.reduce((a,t)=>a+(parseFloat(t.margin)||0), 0);
+  const roi = totalMargin ? (totalPnl/totalMargin*100) : 0;
+  const avgWin = wins.length ? wins.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/losses.length : 0;
+  return { wins:wins.length, losses:losses.length, total:data.length, wr, totalPnl, totalMargin, roi, avgWin, avgLoss };
+}
+
+function render() {
+  const q = document.getElementById('search').value.toUpperCase().trim();
+  const fStatus = document.getElementById('filter-status').value;
+  const fMonth = document.getElementById('filter-month').value;
+
+  const filtered = trades.filter(t => {
+    if (q && !t.symbol.includes(q)) return false;
+    if (fStatus && t.status !== fStatus) return false;
+    if (fMonth && !t.date.startsWith(fMonth)) return false;
+    return true;
+  }).sort((a,b) => b.date.localeCompare(a.date));
+
+  const s = calcStats(filtered);
+
+  const wrClass = s.wr >= 55 ? 'up' : s.wr >= 40 ? 'warn' : 'down';
+  const pnlClass = s.totalPnl >= 0 ? 'up' : 'down';
+  const roiClass = s.roi >= 0 ? 'up' : 'down';
+
+  document.getElementById('stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Total Trade</div>
+      <div class="stat-value neutral">${s.total}</div>
+      <div class="stat-sub">W:${s.wins} L:${s.losses}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Win Rate</div>
+      <div class="stat-value ${wrClass}">${s.wr.toFixed(1)}%</div>
+      <div class="stat-sub">${s.wins} dari ${s.wins+s.losses} closed</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Total PnL</div>
+      <div class="stat-value ${pnlClass}">${s.totalPnl>=0?'+':''}$${s.totalPnl.toFixed(2)}</div>
+      <div class="stat-sub">Avg W: +$${s.avgWin.toFixed(1)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">ROI Margin</div>
+      <div class="stat-value ${roiClass}">${s.roi>=0?'+':''}${s.roi.toFixed(1)}%</div>
+      <div class="stat-sub">Margin: $${s.totalMargin.toFixed(0)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Avg Loss</div>
+      <div class="stat-value ${s.avgLoss<0?'down':'neutral'}">${s.avgLoss<=0?'':'+'} $${s.avgLoss.toFixed(1)}</div>
+      <div class="stat-sub">${s.losses} losing trades</div>
+    </div>
+  `;
+
+  const tb = document.getElementById('tbody');
+  if (!filtered.length) {
+    tb.innerHTML = '<tr class="empty-row"><td colspan="12">Belum ada data trading</td></tr>';
+    return;
+  }
+
+  tb.innerHTML = filtered.map(t => {
+    const pnl = parseFloat(t.pnl)||0;
+    const pnlClass = pnl>0?'pnl-pos':pnl<0?'pnl-neg':'pnl-zero';
+    const pnlStr = pnl===0?'—':(pnl>0?'+':'')+'$'+Math.abs(pnl).toFixed(2);
+    const rr = calcRR(t.entry, t.tp1, t.sl);
+    const rrStr = rr ? `1:${rr}` : '—';
+    return `<tr>
+      <td>${t.date}</td>
+      <td class="sym">${t.symbol}</td>
+      <td class="lev">${t.leverage}x</td>
+      <td class="price">$${fmt(t.entry)}</td>
+      <td class="tp">$${fmt(t.tp1)}</td>
+      <td class="tp">$${fmt(t.tp2)}</td>
+      <td class="sl">$${fmt(t.sl)}</td>
+      <td class="margin-cell">$${parseFloat(t.margin).toFixed(0)}</td>
+      <td class="${pnlClass}" style="font-weight:500">${pnl>=0?pnlStr:'−$'+Math.abs(pnl).toFixed(2)}</td>
+      <td class="price">${rrStr}</td>
+      <td><span class="badge ${t.status}">${t.status}</span></td>
+      <td><button class="del-btn" onclick="deleteTrade(${t.id})" title="Hapus">✕</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function deleteTrade(id) {
+  if (!confirm('Hapus trade ini?')) return;
+  trades = trades.filter(t => t.id !== id);
+  saveData();
+  render();
+}
+
+function clearAll() {
+  if (!confirm('Hapus SEMUA data trading? Tidak bisa di-undo.')) return;
+  trades = [];
+  nextId = 1;
+  saveData();
+  render();
+}
+
+function openModal() {
+  document.getElementById('overlay').classList.add('active');
+  document.getElementById('f-date').value = new Date().toISOString().slice(0,10);
+  document.getElementById('f-sym').value = '';
+  document.getElementById('f-lev').value = '';
+  document.getElementById('f-entry').value = '';
+  document.getElementById('f-tp1').value = '';
+  document.getElementById('f-tp2').value = '';
+  document.getElementById('f-sl').value = '';
+  document.getElementById('f-margin').value = '';
+  document.getElementById('f-pnl').value = '';
+  document.getElementById('f-note').value = '';
+  document.getElementById('f-status').value = 'OPEN';
+  document.getElementById('risk-hint').style.display = 'none';
+  document.getElementById('f-sym').focus();
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('active');
+}
+
+function onOverlayClick(e) {
+  if (e.target === document.getElementById('overlay')) closeModal();
+}
+
+function calcRiskHint() {
+  const margin = parseFloat(document.getElementById('f-margin').value)||0;
+  const hint = document.getElementById('risk-hint');
+  if (margin > 0) {
+    hint.style.display = 'block';
+    hint.textContent = `⚡ Risk per trade: $${margin.toFixed(2)} USDT (pastikan max 1-3% dari total kapital)`;
+  } else {
+    hint.style.display = 'none';
+  }
+}
+
+function saveTrade() {
+  const sym = document.getElementById('f-sym').value.toUpperCase().trim();
+  if (!sym) { alert('Simbol wajib diisi'); return; }
+  const entry = parseFloat(document.getElementById('f-entry').value);
+  if (!entry) { alert('Price entry wajib diisi'); return; }
+
+  const t = {
+    id: nextId++,
+    date: document.getElementById('f-date').value || new Date().toISOString().slice(0,10),
+    symbol: sym,
+    leverage: parseFloat(document.getElementById('f-lev').value)||1,
+    entry,
+    tp1: parseFloat(document.getElementById('f-tp1').value)||0,
+    tp2: parseFloat(document.getElementById('f-tp2').value)||0,
+    sl: parseFloat(document.getElementById('f-sl').value)||0,
+    margin: parseFloat(document.getElementById('f-margin').value)||0,
+    pnl: parseFloat(document.getElementById('f-pnl').value)||0,
+    status: document.getElementById('f-status').value,
+    note: document.getElementById('f-note').value.trim(),
+  };
+  trades.push(t);
+  saveData();
+  closeModal();
+  render();
+}
+
+function exportCSV() {
+  const headers = ['Tanggal','Simbol','Leverage','Entry','TP1','TP2','SL','Margin (USDT)','PnL (USDT)','Status','R:R','Catatan'];
+  const rows = trades.map(t => {
+    const rr = calcRR(t.entry, t.tp1, t.sl);
+    return [t.date, t.symbol, t.leverage+'x', t.entry, t.tp1, t.tp2, t.sl, t.margin, t.pnl, t.status, rr?'1:'+rr:'', t.note||''].join(',');
+  });
+  const csv = [headers.join(','), ...rows].join('\n');
+  const blob = new Blob([csv], {type:'text/csv'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `trading-journal-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+}
+
+loadData();
+render();
+</script>
+</body>
+</html>
