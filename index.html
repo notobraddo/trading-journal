@@ -224,7 +224,8 @@
     font-family: var(--sans);
     letter-spacing: 0.03em;
   }
-  .badge.WIN { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge.TP1 { background: rgba(34,197,94,0.08); color: #4ADE80; border: 1px solid rgba(74,222,128,0.2); }
+  .badge.TP2 { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.3); }
   .badge.LOSS { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
   .badge.OPEN { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(96,165,250,0.2); }
 
@@ -354,7 +355,8 @@
     <input type="text" id="search" placeholder="Cari simbol..." style="width:150px;" oninput="render()">
     <select id="filter-status" onchange="render()">
       <option value="">Semua status</option>
-      <option value="WIN">Win</option>
+      <option value="TP2">TP2</option>
+      <option value="TP1">TP1</option>
       <option value="LOSS">Loss</option>
       <option value="OPEN">Open</option>
     </select>
@@ -430,8 +432,9 @@
         <label>Status</label>
         <select id="f-status">
           <option value="OPEN">Open</option>
-          <option value="WIN">Win</option>
-          <option value="LOSS">Loss</option>
+          <option value="TP1">TP1 — Hit target 1</option>
+          <option value="TP2">TP2 — Hit target 2</option>
+          <option value="LOSS">Loss — Kena SL</option>
         </select>
       </div>
       <div class="form-field full">
@@ -470,9 +473,9 @@ function saveData() {
 
 function seedSample() {
   trades = [
-    {id:1,date:'2025-04-15',symbol:'BTCUSDT',leverage:10,entry:63200,tp1:65500,tp2:68000,sl:62000,margin:100,pnl:85.3,status:'WIN',note:'Break resistance 63k'},
+    {id:1,date:'2025-04-15',symbol:'BTCUSDT',leverage:10,entry:63200,tp1:65500,tp2:68000,sl:62000,margin:100,pnl:85.3,status:'TP2',note:'Break resistance 63k, full target'},
     {id:2,date:'2025-04-18',symbol:'ETHUSDT',leverage:15,entry:3050,tp1:3200,tp2:3400,sl:2950,margin:80,pnl:-80,status:'LOSS',note:'SL kena news Fed'},
-    {id:3,date:'2025-04-22',symbol:'SOLUSDT',leverage:20,entry:142,tp1:152,tp2:165,sl:136,margin:60,pnl:48.2,status:'WIN',note:'Breakout range 140'},
+    {id:3,date:'2025-04-22',symbol:'SOLUSDT',leverage:20,entry:142,tp1:152,tp2:165,sl:136,margin:60,pnl:28.5,status:'TP1',note:'Breakout range 140, ambil TP1 aja'},
     {id:4,date:'2025-04-28',symbol:'BNBUSDT',leverage:10,entry:580,tp1:610,tp2:640,sl:558,margin:75,pnl:-75,status:'LOSS',note:''},
     {id:5,date:'2025-05-01',symbol:'BTCUSDT',leverage:10,entry:96500,tp1:99000,tp2:102000,sl:94000,margin:150,pnl:0,status:'OPEN',note:'Weekly support bounce'},
   ];
@@ -494,8 +497,10 @@ function calcRR(entry, tp1, sl) {
 }
 
 function calcStats(data) {
-  const wins = data.filter(t=>t.status==='WIN');
+  const tp2s = data.filter(t=>t.status==='TP2');
+  const tp1s = data.filter(t=>t.status==='TP1');
   const losses = data.filter(t=>t.status==='LOSS');
+  const wins = [...tp1s, ...tp2s];
   const closed = wins.length + losses.length;
   const wr = closed ? (wins.length/closed*100) : 0;
   const totalPnl = data.reduce((a,t)=>a+(parseFloat(t.pnl)||0), 0);
@@ -503,7 +508,7 @@ function calcStats(data) {
   const roi = totalMargin ? (totalPnl/totalMargin*100) : 0;
   const avgWin = wins.length ? wins.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/wins.length : 0;
   const avgLoss = losses.length ? losses.reduce((a,t)=>a+(parseFloat(t.pnl)||0),0)/losses.length : 0;
-  return { wins:wins.length, losses:losses.length, total:data.length, wr, totalPnl, totalMargin, roi, avgWin, avgLoss };
+  return { tp1s:tp1s.length, tp2s:tp2s.length, wins:wins.length, losses:losses.length, total:data.length, wr, totalPnl, totalMargin, roi, avgWin, avgLoss };
 }
 
 function render() {
@@ -528,7 +533,7 @@ function render() {
     <div class="stat-card">
       <div class="stat-label">Total Trade</div>
       <div class="stat-value neutral">${s.total}</div>
-      <div class="stat-sub">W:${s.wins} L:${s.losses}</div>
+      <div class="stat-sub">TP1:${s.tp1s} TP2:${s.tp2s} L:${s.losses}</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Win Rate</div>
