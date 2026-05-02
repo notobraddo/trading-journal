@@ -489,11 +489,27 @@ function fmt(n) {
   return n.toFixed(abs < 1 ? 4 : 2);
 }
 
-function calcRR(entry, tp1, sl) {
-  if (!entry || !tp1 || !sl || entry===sl) return null;
-  const reward = Math.abs(tp1 - entry);
+function calcRR(entry, target, sl) {
+  if (!entry || !target || !sl || entry === sl) return null;
+  const reward = Math.abs(target - entry);
   const risk = Math.abs(entry - sl);
-  return (reward/risk).toFixed(2);
+  return (reward / risk).toFixed(2);
+}
+
+function calcRRDisplay(t) {
+  const rr1 = calcRR(t.entry, t.tp1, t.sl);
+  const rr2 = calcRR(t.entry, t.tp2, t.sl);
+  if (t.status === 'OPEN') {
+    const p1 = rr1 ? `1:${rr1}` : '—';
+    const p2 = rr2 ? `1:${rr2}` : '—';
+    return `<span style="color:var(--text-secondary)">${p1}</span><span style="color:var(--text-muted)"> / </span><span style="color:var(--green)">${p2}</span>`;
+  } else if (t.status === 'TP1') {
+    return rr1 ? `<span style="color:var(--green)">1:${rr1}</span>` : '—';
+  } else if (t.status === 'TP2') {
+    return rr2 ? `<span style="color:var(--green)">1:${rr2}</span>` : '—';
+  } else {
+    return rr1 ? `<span style="color:var(--text-muted)">1:${rr1}</span>` : '—';
+  }
 }
 
 function calcStats(data) {
@@ -567,8 +583,7 @@ function render() {
     const pnl = parseFloat(t.pnl)||0;
     const pnlClass = pnl>0?'pnl-pos':pnl<0?'pnl-neg':'pnl-zero';
     const pnlStr = pnl===0?'—':(pnl>0?'+':'')+'$'+Math.abs(pnl).toFixed(2);
-    const rr = calcRR(t.entry, t.tp1, t.sl);
-    const rrStr = rr ? `1:${rr}` : '—';
+    const rrDisplay = calcRRDisplay(t);
     return `<tr>
       <td>${t.date}</td>
       <td class="sym">${t.symbol}</td>
@@ -579,7 +594,7 @@ function render() {
       <td class="sl">$${fmt(t.sl)}</td>
       <td class="margin-cell">$${parseFloat(t.margin).toFixed(0)}</td>
       <td class="${pnlClass}" style="font-weight:500">${pnl>=0?pnlStr:'−$'+Math.abs(pnl).toFixed(2)}</td>
-      <td class="price">${rrStr}</td>
+      <td style="font-family:var(--mono);font-size:12px;">${rrDisplay}</td>
       <td><span class="badge ${t.status}">${t.status}</span></td>
       <td style="display:flex;gap:4px;">
         <button class="del-btn" onclick="editTrade(${t.id})" title="Edit" style="color:var(--text-muted)">✎</button>
@@ -701,8 +716,14 @@ function saveTrade() {
 function exportCSV() {
   const headers = ['Tanggal','Simbol','Leverage','Entry','TP1','TP2','SL','Margin (USDT)','PnL (USDT)','Status','R:R','Catatan'];
   const rows = trades.map(t => {
-    const rr = calcRR(t.entry, t.tp1, t.sl);
-    return [t.date, t.symbol, t.leverage+'x', t.entry, t.tp1, t.tp2, t.sl, t.margin, t.pnl, t.status, rr?'1:'+rr:'', t.note||''].join(',');
+    const rr1 = calcRR(t.entry, t.tp1, t.sl);
+    const rr2 = calcRR(t.entry, t.tp2, t.sl);
+    let rrExport = '—';
+    if (t.status === 'OPEN') rrExport = (rr1?`1:${rr1}`:'—') + ' / ' + (rr2?`1:${rr2}`:'—');
+    else if (t.status === 'TP1') rrExport = rr1 ? `1:${rr1}` : '—';
+    else if (t.status === 'TP2') rrExport = rr2 ? `1:${rr2}` : '—';
+    else rrExport = rr1 ? `1:${rr1}` : '—';
+    return [t.date, t.symbol, t.leverage+'x', t.entry, t.tp1, t.tp2, t.sl, t.margin, t.pnl, t.status, rrExport, t.note||''].join(',');
   });
   const csv = [headers.join(','), ...rows].join('\n');
   const blob = new Blob([csv], {type:'text/csv'});
